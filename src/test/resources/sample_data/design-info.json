@@ -2,6 +2,9 @@
   "sampleData": {
     "a0dab329-10ff-4ede-b629-74505e4392ea": {
       "payload": "sample_data/json.json"
+    },
+    "06ba8f80-44f1-4c3d-b274-af9a9bad2fef": {
+      "payload": "sample_data/listallflightsresponse.xml"
     }
   }
 }

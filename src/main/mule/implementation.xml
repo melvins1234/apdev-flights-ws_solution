@@ -87,9 +87,56 @@ payload.flights map ( flight, indexOfFlight ) -> {
 				<ee:set-variable variableName="DWoutput" ><![CDATA[%dw 2.0
 output application/xml
 ---
-payload]]></ee:set-variable>
+data: {
+	hub: "MUA",
+	flight @(airline: payload.airline):{
+		code: payload.toAirportCode
+	}
+}]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
-		<logger level="INFO" doc:name="Logger" doc:id="794e953d-f1d6-4ae6-ad46-42b4b636a82f" />
+		<logger level="INFO" doc:name="Logger" doc:id="794e953d-f1d6-4ae6-ad46-42b4b636a82f" message="#[vars.DWoutput]"/>
+	</flow>
+	<flow name="multipleFlights" doc:id="fd829bba-008b-40fb-a073-7d32bf884a24" >
+		<http:listener doc:name="POST /multipleFlights" doc:id="7399ab58-be20-4032-a869-7967e6ef3986" config-ref="HTTP_Listener_config" path="/multipleFlights" allowedMethods="POST"/>
+		<ee:transform doc:name="Transform Message" doc:id="06ba8f80-44f1-4c3d-b274-af9a9bad2fef" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/dw
+import dasherize from dw::core::Strings
+//var numSeats = (x=400) -> x
+//var numSeats = (planeType: String) -> 
+//	if(planeType contains('737'))
+//		150
+//	else
+//		300
+
+type Currency = String {format: "###.00"}
+type Flight = Object {class: "com.mulesoft.training.Flight"}
+
+fun getNumSeats(planeType:String) = do {
+	var maxSeats = 
+	if (planeType contains('737'))
+		150
+	else
+		300
+	---
+	maxSeats
+}
+
+---
+flights: (payload..*return map (object, index) ->  {
+	destination: object.destination,
+	price: object.price as Number as Currency,
+//	totalSeats: getNumSeats(object.planeType as String),
+	availableSeats: object.emptySeats as Number,
+	planeType: dasherize(replace(object.planeType,/(Boing)/) with "Boeing"),
+	departureDate: object.departureDate as Date {format: "yyyy/MM/dd"} 
+	as String {format: "MMM dd, yyyy"}
+} as Flight) distinctBy $ filter ($.availableSeats != 0) 
+			 orderBy $.departureDate orderBy $.price]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="325c06ef-b064-42ea-aa1a-e8397eba962c" />
 	</flow>
 </mule>
